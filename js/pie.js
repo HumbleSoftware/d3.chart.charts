@@ -1,3 +1,14 @@
+/**
+ * Fake data for pie looks like:
+  function getPieData () {
+    return [
+      {"label":"one", "value":Math.random() * 20}, 
+      {"label":"two", "value":Math.random() * 50}, 
+      {"label":"three", "value":Math.random() * 30}
+    ];
+  }
+ */
+
 d3.chart("Pie", {
   initialize : function (options) {
 
@@ -49,7 +60,6 @@ d3.chart("Pie", {
     // Legend layer:
     var legend = this.base.append('g')
       .classed('legend', true)
-      .attr('transform', 'translate(' + 280 + ',10)');
     this.layer('legend', legend, {
       dataBind : function (data) {
         return this.selectAll('g.legend-item')
@@ -81,10 +91,13 @@ d3.chart("Pie", {
     this.height(options.height || 320);
 
     var radius = Math.min(this.width(), this.height()) / 2;
-    slices.attr('transform', 'translate(' + this.width() / 2 + ',' + this.height() / 2 + ')');
+    legend.attr('transform', 'translate(' + radius * 2 + ',10)');
+    slices.attr('transform', 'translate(' + radius + ',' + radius + ')');
     var arc = this.arc = d3.svg.arc()
       .innerRadius(radius / ((1 + Math.sqrt(5)) / 2))
       .outerRadius(radius);
+
+    if (options.configure) options.configure(this);
   },
   width: function(newWidth) {
     if (!arguments.length) {
