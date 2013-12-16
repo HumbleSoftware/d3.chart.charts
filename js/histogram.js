@@ -1,12 +1,12 @@
 d3.chart("Histogram", {
 
-  initialize: function(options) {
+  initialize: function (options) {
 
     options = options || {};
 
     var chart = window.chart = this;
 
-    this.color = d3.scale.linear();
+    this.color = options.color || d3.scale.category10();
     this.stack = d3.layout.stack();
     this.x = d3.scale.linear();
     this.y = d3.scale.linear()
@@ -128,7 +128,6 @@ d3.chart("Histogram", {
           });
         }
       }
-
     });
 
     // Constructor options:
@@ -172,9 +171,6 @@ d3.chart("Histogram", {
     var padding = this.padding();
     this.stack(data);
     var yStackMax = d3.max(data, function (layer) { return d3.max(layer, function (d) { return d.y0 + d.y; }); });
-    this.color
-      .domain([0, data.length - 1])
-      .range(["#556", "#aad"]);
 
     // Axes:
     this.x

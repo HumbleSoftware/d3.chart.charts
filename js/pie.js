@@ -15,7 +15,7 @@ d3.chart("Pie", {
     options = options || {};
 
     var chart = this;
-    this.color = d3.scale.linear();
+    this.color = options.color || d3.scale.category10();
 
     var pie = this.pie = d3.layout.pie()
       .sort(null)
@@ -117,9 +117,6 @@ d3.chart("Pie", {
     return this;
   },
   transform : function (data) {
-    this.color
-      .domain([0, data.length - 1])
-      .range(["#556", "#aad"]);
     return data;
   }
 });
