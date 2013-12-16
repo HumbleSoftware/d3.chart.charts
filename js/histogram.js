@@ -4,7 +4,7 @@ d3.chart("Histogram", {
 
     options = options || {};
 
-    var chart = window.chart = this;
+    var chart = this;
 
     this.color = options.color || d3.scale.category10();
     this.stack = d3.layout.stack();
@@ -47,7 +47,7 @@ d3.chart("Histogram", {
           .attr("fill", function (d, i) { return chart.color(i); });
       },
       events : {
-        enter : function () {
+        'enter' : function () {
           this.selectAll("rect")
             .data(function (d) { return d; })
             .enter().append('rect')
@@ -61,7 +61,7 @@ d3.chart("Histogram", {
         },
         'update:transition' : function () {
           this.selectAll('rect')
-            .transition(500)
+            .duration(chart.duration())
             .call(positionBar.call(this));
         }
       }
@@ -95,6 +95,9 @@ d3.chart("Histogram", {
               .attr('transform', function (d) {
                 return 'translate(' + (xAxis.scale()(d) + chart.barWidth() / 2) + ',0)';
               });
+        },
+        update : function () {
+          this.call(chart.xAxis);
         }
       }
     });
@@ -157,7 +160,13 @@ d3.chart("Histogram", {
     this.base.attr("height", this.h);
     return this;
   },
-
+  duration : function (duration) {
+    if (!arguments.length) {
+      return this._duration;
+    }
+    this._duration = duration;
+    return this;
+  },
   padding : function (newPadding) {
     if (!arguments.length) {
       return this.p;
@@ -165,7 +174,6 @@ d3.chart("Histogram", {
     this.p = newPadding;
     return this;
   },
-
   transform : function (config) {
     var data = config.data || config;
     var padding = this.padding();
