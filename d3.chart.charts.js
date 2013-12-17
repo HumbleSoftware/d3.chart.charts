@@ -6,13 +6,13 @@
  */
 d3.chart("Histogram", {
 
-  initialize: function(options) {
+  initialize: function (options) {
 
     options = options || {};
 
-    var chart = window.chart = this;
+    var chart = this;
 
-    this.color = d3.scale.linear();
+    this.color = options.color || d3.scale.category10();
     this.stack = d3.layout.stack();
     this.x = d3.scale.linear();
     this.y = d3.scale.linear()
@@ -53,7 +53,7 @@ d3.chart("Histogram", {
           .attr("fill", function (d, i) { return chart.color(i); });
       },
       events : {
-        enter : function () {
+        'enter' : function () {
           this.selectAll("rect")
             .data(function (d) { return d; })
             .enter().append('rect')
@@ -67,14 +67,16 @@ d3.chart("Histogram", {
         },
         'update:transition' : function () {
           this.selectAll('rect')
-            .transition(500)
+            .duration(chart.duration())
             .call(positionBar.call(this));
         }
       }
     });
 
     // Ticks layer:
-    this.xAxis = d3.svg.axis()
+    var xAxis = this.xAxis = d3.svg.axis();
+    if (options.tickValues) xAxis.tickValues(options.tickValues);
+    if (options.tickFormat) xAxis.tickFormat(options.tickFormat);
     this.layer('ticks', this.base.append('g').attr('class', 'ticks'), {
       dataBind : function (data) {
         return this.selectAll('g')
@@ -92,20 +94,55 @@ d3.chart("Histogram", {
             .tickPadding(6)
             .orient('bottom');
 
-          // Special position for axis:
           this
             .attr('class', 'x axis')
             .attr('transform', 'translate(0,' + (chart.height() - chart.padding()[2]) + ')')
             .call(xAxis)
-            .selectAll('g')
-              .attr('transform', function (d) {
-                return 'translate(' + (xAxis.scale()(d) + chart.barWidth() / 2) + ',0)';
-              });
+          this.selectAll('g')
+            .attr('transform', function (d) {
+              return 'translate(' + (xAxis.scale()(d) + chart.barWidth() / 2) + ',0)';
+            });
+        },
+        update : function () {
+          this.call(chart.xAxis);
+          this.call(centerTicks);
         }
       }
     });
+    function centerTicks () {
+      this.selectAll('g')
+        .attr('transform', function (d, i) {
+          return 'translate(' + (xAxis.scale()(d) + chart.barWidth() / 2) + ',0)';
+        });
+    }
+
+    // Constructor options:
+    this.width(options.width || 600);
+    this.height(options.height || 120);
+    this.padding(options.padding || [0, 0, 20, 0]);
+
+    if (options.configure) options.configure(this);
+
+    // Brush:
+    // TODO factor this out into either a layer or chart mixin.
+    var gBrush = this.gBrush = this.base.append('g').attr('class', 'brush');
+    var brush = this.brush = d3.svg.brush().x(this.x);
+    gBrush.call(brush);
+    var oldExtent = brush.extent();
+    gBrush.selectAll('rect').attr('height', chart.height());
+    brush.on('brush.chart', function () {
+      var extent = brush.extent().map(Math.round);
+      brush.extent(extent);
+      gBrush.call(brush);
+      // Trigger brush change event:
+      if (oldExtent && (oldExtent[0] !== extent[0] || oldExtent[1] !== extent[1])) {
+        chart.trigger('select', extent[0] !== extent[1] ? extent : null);
+      }
+      oldExtent = extent;
+    });
 
     // Brush layer:
+    /*
     this.layer('brush', this.base.append('g').attr('class', 'brush'), {
       dataBind : function (data) {
         return this.selectAll('g').data([1]);
@@ -118,8 +155,8 @@ d3.chart("Histogram", {
           var layer = this;
           var chart = this.chart();
           var oldExtent;
-          var brush = d3.svg.brush()
-            .x(chart.x);
+          var brush = d3.svg.brush();
+          brush.x(chart.x);
           this.call(brush);
           this.selectAll('rect').attr('height', chart.height());
           brush.on('brush.chart', function () {
@@ -134,15 +171,8 @@ d3.chart("Histogram", {
           });
         }
       }
-
     });
-
-    // Constructor options:
-    this.width(options.width || 600);
-    this.height(options.height || 120);
-    this.padding(options.padding || [0, 0, 20, 0]);
-
-    if (options.configure) options.configure(this);
+    */
   },
 
   width : function(newWidth) {
@@ -164,7 +194,13 @@ d3.chart("Histogram", {
     this.base.attr("height", this.h);
     return this;
   },
-
+  duration : function (duration) {
+    if (!arguments.length) {
+      return this._duration;
+    }
+    this._duration = duration;
+    return this;
+  },
   padding : function (newPadding) {
     if (!arguments.length) {
       return this.p;
@@ -172,25 +208,34 @@ d3.chart("Histogram", {
     this.p = newPadding;
     return this;
   },
-
+  selection : function (extent) {
+    var brush = this.brush;
+    if (!arguments.length) {
+      return brush.extent();
+    }
+    brush.extent(extent || [315, 315]);
+    this.gBrush.call(brush);
+    return this;
+  },
   transform : function (config) {
     var data = config.data || config;
     var padding = this.padding();
     this.stack(data);
     var yStackMax = d3.max(data, function (layer) { return d3.max(layer, function (d) { return d.y0 + d.y; }); });
-    this.color
-      .domain([0, data.length - 1])
-      .range(["#556", "#aad"]);
 
     // Axes:
+    var padding = this.padding();
     this.x
       .domain([data[0][0].x, data[0][data[0].length - 1].x + 1])
-      .range([0, this.width()]);
+      .range([padding[3], this.width() - padding[1]]);
 
     var y = config.y;
     this.y
       .domain([0, y.max || yStackMax])
-      .range([this.height() - this.padding()[2] - this.padding()[0], 0]);
+      .range([this.height() - padding[2] - padding[0], 0]);
+
+    this.selection(this.brush.extent());
+
     return data;
   }
 });
@@ -211,7 +256,7 @@ d3.chart("Pie", {
     options = options || {};
 
     var chart = this;
-    this.color = d3.scale.linear();
+    this.color = options.color || d3.scale.category10();
 
     var pie = this.pie = d3.layout.pie()
       .sort(null)
@@ -313,9 +358,6 @@ d3.chart("Pie", {
     return this;
   },
   transform : function (data) {
-    this.color
-      .domain([0, data.length - 1])
-      .range(["#556", "#aad"]);
     return data;
   }
 });
