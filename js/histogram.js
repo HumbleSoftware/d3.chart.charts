@@ -102,7 +102,33 @@ d3.chart("Histogram", {
       }
     });
 
+    // Constructor options:
+    this.width(options.width || 600);
+    this.height(options.height || 120);
+    this.padding(options.padding || [0, 0, 20, 0]);
+
+    if (options.configure) options.configure(this);
+
+    // Brush:
+    // TODO factor this out into either a layer or chart mixin.
+    var gBrush = this.gBrush = this.base.append('g').attr('class', 'brush');
+    var brush = this.brush = d3.svg.brush().x(this.x);
+    gBrush.call(brush);
+    var oldExtent = brush.extent();
+    gBrush.selectAll('rect').attr('height', chart.height());
+    brush.on('brush.chart', function () {
+      var extent = brush.extent().map(Math.round);
+      brush.extent(extent);
+      gBrush.call(brush);
+      // Trigger brush change event:
+      if (oldExtent && (oldExtent[0] !== extent[0] || oldExtent[1] !== extent[1])) {
+        chart.trigger('select', extent[0] !== extent[1] ? extent : null);
+      }
+      oldExtent = extent;
+    });
+
     // Brush layer:
+    /*
     this.layer('brush', this.base.append('g').attr('class', 'brush'), {
       dataBind : function (data) {
         return this.selectAll('g').data([1]);
@@ -115,8 +141,8 @@ d3.chart("Histogram", {
           var layer = this;
           var chart = this.chart();
           var oldExtent;
-          var brush = d3.svg.brush()
-            .x(chart.x);
+          var brush = d3.svg.brush();
+          brush.x(chart.x);
           this.call(brush);
           this.selectAll('rect').attr('height', chart.height());
           brush.on('brush.chart', function () {
@@ -132,13 +158,7 @@ d3.chart("Histogram", {
         }
       }
     });
-
-    // Constructor options:
-    this.width(options.width || 600);
-    this.height(options.height || 120);
-    this.padding(options.padding || [0, 0, 20, 0]);
-
-    if (options.configure) options.configure(this);
+    */
   },
 
   width : function(newWidth) {
@@ -174,6 +194,15 @@ d3.chart("Histogram", {
     this.p = newPadding;
     return this;
   },
+  selection : function (extent) {
+    var brush = this.brush;
+    if (!arguments.length) {
+      return brush.extent();
+    }
+    brush.extent(extent || [315, 315]);
+    this.gBrush.call(brush);
+    return this;
+  },
   transform : function (config) {
     var data = config.data || config;
     var padding = this.padding();
@@ -189,6 +218,9 @@ d3.chart("Histogram", {
     this.y
       .domain([0, y.max || yStackMax])
       .range([this.height() - this.padding()[2] - this.padding()[0], 0]);
+
+    this.selection(this.brush.extent());
+
     return data;
   }
 });
