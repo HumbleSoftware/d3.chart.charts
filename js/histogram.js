@@ -88,21 +88,27 @@ d3.chart("Histogram", {
             .tickPadding(6)
             .orient('bottom');
 
-          // Special position for axis:
           this
             .attr('class', 'x axis')
             .attr('transform', 'translate(0,' + (chart.height() - chart.padding()[2]) + ')')
             .call(xAxis)
-            .selectAll('g')
-              .attr('transform', function (d) {
-                return 'translate(' + (xAxis.scale()(d) + chart.barWidth() / 2) + ',0)';
-              });
+          this.selectAll('g')
+            .attr('transform', function (d) {
+              return 'translate(' + (xAxis.scale()(d) + chart.barWidth() / 2) + ',0)';
+            });
         },
         update : function () {
           this.call(chart.xAxis);
+          this.call(centerTicks);
         }
       }
     });
+    function centerTicks () {
+      this.selectAll('g')
+        .attr('transform', function (d, i) {
+          return 'translate(' + (xAxis.scale()(d) + chart.barWidth() / 2) + ',0)';
+        });
+    }
 
     // Constructor options:
     this.width(options.width || 600);
@@ -212,14 +218,15 @@ d3.chart("Histogram", {
     var yStackMax = d3.max(data, function (layer) { return d3.max(layer, function (d) { return d.y0 + d.y; }); });
 
     // Axes:
+    var padding = this.padding();
     this.x
       .domain([data[0][0].x, data[0][data[0].length - 1].x + 1])
-      .range([0, this.width()]);
+      .range([padding[3], this.width() - padding[1]]);
 
     var y = config.y;
     this.y
       .domain([0, y.max || yStackMax])
-      .range([this.height() - this.padding()[2] - this.padding()[0], 0]);
+      .range([this.height() - padding[2] - padding[0], 0]);
 
     this.selection(this.brush.extent());
 
