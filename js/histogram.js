@@ -68,7 +68,9 @@ d3.chart("Histogram", {
     });
 
     // Ticks layer:
-    this.xAxis = d3.svg.axis()
+    var xAxis = this.xAxis = d3.svg.axis();
+    if (options.tickValues) xAxis.tickValues(options.tickValues);
+    if (options.tickFormat) xAxis.tickFormat(options.tickFormat);
     this.layer('ticks', this.base.append('g').attr('class', 'ticks'), {
       dataBind : function (data) {
         return this.selectAll('g')
