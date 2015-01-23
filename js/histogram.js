@@ -125,7 +125,10 @@ d3.chart("Histogram", {
     var oldExtent = brush.extent();
     gBrush.selectAll('rect').attr('height', chart.height());
     brush.on('brush.chart', function () {
-      var extent = brush.extent().map(Math.round);
+      var extent = brush.extent();
+      var a = Math.round(extent[0]);
+      var b = Math.round(a + Math.round(extent[1] - extent[0]));
+      extent = [a, b];
       brush.extent(extent);
       gBrush.call(brush);
       // Trigger brush change event:
