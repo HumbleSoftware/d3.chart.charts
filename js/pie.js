@@ -25,8 +25,12 @@ d3.chart("Pie", {
     var slices = this.base.append('g').attr('class', 'slices');
     this.layer('slices', slices, {
       dataBind : function (data) {
-        return this.selectAll('g.slice')
-          .data(chart.pie(data));
+        data = chart.pie(data).map(function (d) {
+          d.startAngle = d.startAngle || 0;
+          d.endAngle = d.endAngle || 0;
+          return d;
+        });
+        return this.selectAll('g.slice').data(data);
       },
       insert : function () {
         return this.append('g')
